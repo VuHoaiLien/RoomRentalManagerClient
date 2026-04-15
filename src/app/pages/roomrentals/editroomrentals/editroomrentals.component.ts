@@ -1,9 +1,13 @@
-import { Component, OnInit, Input, Inject, Optional } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { API_BASE_URL, SelectListItem, ServiceProxy } from '../../../shared/services';
-import { ReactiveFormsModule } from '@angular/forms';
+import { Component, EventEmitter, Output, Inject, Optional } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  API_BASE_URL,
+  SelectListItem,
+  ServiceProxy,
+  CreateOrEditRoomRentalDto
+} from '../../../shared/services';
 import { NzFormItemComponent, NzFormLabelComponent, NzFormControlComponent } from 'ng-zorro-antd/form';
-import { NZ_MODAL_DATA, NzModalModule } from 'ng-zorro-antd/modal';
+import { NZ_MODAL_DATA, NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
@@ -11,37 +15,72 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommonModule } from '@angular/common';
 import { CategoryCacheService } from '../../../shared/category-cache.service';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 import { SelectListItemService } from '../../../shared/get-select-list-item.service';
 import { NzUploadFile, NzUploadModule } from 'ng-zorro-antd/upload';
-const getBase64 = (file: File): Promise<string | ArrayBuffer | null> => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-  reader.onload = () => resolve(reader.result);
-  reader.onerror = error => reject(error);
-});
+
+const getBase64 = (file: File): Promise<string | ArrayBuffer | null> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+
 @Component({
   selector: 'app-editroomrentals',
-  imports: [ReactiveFormsModule, NzFormItemComponent, NzFormLabelComponent,
-    NzFormControlComponent, NzModalModule, NzInputModule, NzButtonModule,
-    NzDatePickerModule, NzSelectModule, CommonModule, NzIconModule, NzUploadModule],
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    NzFormItemComponent,
+    NzFormLabelComponent,
+    NzFormControlComponent,
+    NzModalModule,
+    NzInputModule,
+    NzButtonModule,
+    NzDatePickerModule,
+    NzSelectModule,
+    CommonModule,
+    NzIconModule,
+    NzUploadModule
+  ],
   templateUrl: './editroomrentals.component.html',
-  styleUrl: './editroomrentals.component.css'
+  styleUrls: ['./editroomrentals.component.css']
 })
 export class EditRoomRentalsComponent {
+  @Output() saved = new EventEmitter<void>();
+
   lstUser: SelectListItem[] = [];
   lstRoomTypes: SelectListItem[] = [];
   lstRoomStatuses: SelectListItem[] = [];
+
   fileList: NzUploadFile[] = [];
   previewImage: string | undefined = '';
   previewVisible = false;
+
   editRoomRentalForm: FormGroup;
   baseUrl?: string;
-  constructor(private fb: FormBuilder, private serviceProxy: ServiceProxy, private memoryCache: CategoryCacheService,
-    private _getSelectListItem: SelectListItemService, @Inject(NZ_MODAL_DATA) public data: { roomrentalData: any },
-    @Optional() @Inject(API_BASE_URL) baseUrl: string) {
+
+  controlRequestArray: Array<{
+    label: string;
+    key: string;
+    type: string;
+    options?: () => SelectListItem[];
+    placeholder?: string;
+    validators?: any[];
+  }> = [];
+
+  constructor(
+    private fb: FormBuilder,
+    private serviceProxy: ServiceProxy,
+    private memoryCache: CategoryCacheService,
+    private getSelectListItemService: SelectListItemService,
+    private modalRef: NzModalRef,
+    @Inject(NZ_MODAL_DATA) public data: { roomrentalData: any },
+    @Optional() @Inject(API_BASE_URL) baseUrl: string
+  ) {
     this.baseUrl = baseUrl;
-    // Initialize form with basic structure first
+
     this.editRoomRentalForm = this.fb.group({
       id: [''],
       roomNumber: ['', Validators.required],
@@ -57,97 +96,73 @@ export class EditRoomRentalsComponent {
       imagesDescription: ['']
     });
   }
-  controlRequestArray: Array<{
-    label: string;
-    key: string;
-    type: string;
-    options?: () => SelectListItem[];
-    placeholder?: string;
-    validators?: any[];
-  }> = [];
 
-  handlePreview = async (file: NzUploadFile): Promise<void> => {
-    if (!file.url && !file['preview']) {
-      file['preview'] = await getBase64(file.originFileObj!);
-    }
-    this.previewImage = file.url || file['preview'];
-    this.previewVisible = true;
-  };
-  beforeUpload = (file: NzUploadFile): boolean => {
-    let rawFile: File | undefined;
-    let uploadFile: NzUploadFile | undefined;
-    if (file instanceof File) {
-      rawFile = file;
-      uploadFile = {
-        ...file,
-        originFileObj: file,
-        status: 'done',
-        thumnbUrl: URL.createObjectURL(file)
-      }
-    }
-    else {
-      rawFile = file.originFileObj;
-      uploadFile = {
-        ...file,
-        originFileObj: file.originFileObj,
-        status: 'done',
-        thumnbUrl: file.url
-      };
-    }
-    this.fileList = [...this.fileList, uploadFile!];
-    return false;
-  };
   ngOnInit(): void {
     const cachedRoomTypes = this.memoryCache.get<SelectListItem[]>('roomType');
     const cachedRoomStatus = this.memoryCache.get<SelectListItem[]>('roomStatus');
     const cachedUsers = this.memoryCache.get<SelectListItem[]>('user');
-    const userObservable$ = cachedUsers ? of(cachedUsers) : this._getSelectListItem.getSelectListItems("user", "");
-    const roomTypeObservable$ = cachedRoomTypes ? of(cachedRoomTypes) : this._getSelectListItem.getEnumSelectListItems("roomType");
-    const roomStatusObservable$ = cachedRoomStatus ? of(cachedRoomStatus) : this._getSelectListItem.getEnumSelectListItems("roomStatus");
 
-    forkJoin([userObservable$, roomTypeObservable$, roomStatusObservable$])
-      .subscribe(([users, roomTypes, roomStatus]) => {
-        this.lstUser = users ? users : [];
-        this.lstRoomTypes = roomTypes ? roomTypes : [];
-        this.lstRoomStatuses = roomStatus ? roomStatus : [];
-        if (!cachedUsers) this.memoryCache.set('user', users);
-        if (!cachedRoomTypes) this.memoryCache.set('roomType', roomTypes);
-        if (!roomStatus) this.memoryCache.set('roomStatus', roomStatus);
+    const userObservable$ = cachedUsers
+      ? of(cachedUsers)
+      : this.getSelectListItemService.getSelectListItems('user', '');
 
-        // Khởi tạo controlRequestArray sau khi có dữ liệu
+    const roomTypeObservable$ = cachedRoomTypes
+      ? of(cachedRoomTypes)
+      : this.getSelectListItemService.getEnumSelectListItems('roomType');
+
+    const roomStatusObservable$ = cachedRoomStatus
+      ? of(cachedRoomStatus)
+      : this.getSelectListItemService.getEnumSelectListItems('roomStatus');
+
+    forkJoin([userObservable$, roomTypeObservable$, roomStatusObservable$]).subscribe({
+      next: ([users, roomTypes, roomStatus]) => {
+        this.lstUser = users || [];
+        this.lstRoomTypes = roomTypes || [];
+        this.lstRoomStatuses = roomStatus || [];
+
+        if (!cachedUsers) {
+          this.memoryCache.set('user', this.lstUser);
+        }
+        if (!cachedRoomTypes) {
+          this.memoryCache.set('roomType', this.lstRoomTypes);
+        }
+        if (!cachedRoomStatus) {
+          this.memoryCache.set('roomStatus', this.lstRoomStatuses);
+        }
+
         this.initializeFormControls();
-
-        // Fill dữ liệu vào form SAU KHI đã có tất cả select lists
         this.populateFormData();
       },
-        error => {
-          console.error('Error fetching data:', error);
-        }
-      );
+      error: (error) => {
+        console.error('Error fetching data:', error);
+      }
+    });
   }
 
   initializeFormControls(): void {
-    // Định nghĩa các field cho form chỉnh sửa (chỉ những field có thể edit)
     this.controlRequestArray = [
       {
         label: 'Số phòng',
         key: 'roomNumber',
         type: 'text',
-        placeholder: 'Nhập số phòng'
+        placeholder: 'Nhập số phòng',
+        validators: [Validators.required]
       },
       {
         label: 'Loại phòng',
         key: 'roomType',
         type: 'select',
         options: () => this.lstRoomTypes,
-        placeholder: 'Chọn loại phòng'
+        placeholder: 'Chọn loại phòng',
+        validators: [Validators.required]
       },
       {
         label: 'Trạng thái phòng',
         key: 'statusRoom',
         type: 'select',
         options: () => this.lstRoomStatuses,
-        placeholder: 'Chọn trạng thái phòng'
+        placeholder: 'Chọn trạng thái phòng',
+        validators: [Validators.required]
       },
       {
         label: 'Ghi chú',
@@ -160,82 +175,181 @@ export class EditRoomRentalsComponent {
         label: 'Diện tích',
         key: 'area',
         type: 'number',
-        placeholder: 'Nhập diện tích (m²)'
+        placeholder: 'Nhập diện tích (m²)',
+        validators: [Validators.required]
       },
       {
         label: 'Giá',
         key: 'price',
         type: 'number',
         placeholder: 'Nhập giá phòng',
+        validators: [Validators.required]
       },
       {
-        label: "Ảnh mô tả",
+        label: 'Ảnh mô tả',
         key: 'imagesDescription',
         type: 'file',
         placeholder: 'Chọn ảnh mô tả',
+        validators: []
       }
     ];
   }
 
   populateFormData(): void {
-    // Fill dữ liệu vào form nếu có
-    if (this.data && this.data.roomrentalData) {
-      console.log('Populating form with data:', this.data.roomrentalData);
+    if (!this.data?.roomrentalData) {
+      return;
+    }
 
-      // Ensure the form values match the select options
-      const formData = { ...this.data.roomrentalData };
+    const formData = { ...this.data.roomrentalData };
 
-      // Convert enum values to match select options if needed
-      if (formData.roomType !== undefined) {
-        formData.roomType = formData.roomType.toString();
-      }
-      if (formData.statusRoom !== undefined) {
-        formData.statusRoom = formData.statusRoom.toString();
-      }
+    if (formData.roomType !== undefined && formData.roomType !== null) {
+      formData.roomType = formData.roomType.toString();
+    }
 
-      this.editRoomRentalForm.patchValue(formData);
+    if (formData.statusRoom !== undefined && formData.statusRoom !== null) {
+      formData.statusRoom = formData.statusRoom.toString();
+    }
 
-      console.log('Form after patch:', this.editRoomRentalForm.value);
+    if (formData.roomNumber !== undefined && formData.roomNumber !== null) {
+      formData.roomNumber = formData.roomNumber.toString();
+    }
 
-      // Handle image descriptions if available
-      if (this.data.roomrentalData.imagesDescription && this.data.roomrentalData.imagesDescription.length > 0) {
-        this.fileList = this.data.roomrentalData.imagesDescription.map((img: any, index: number) => ({
-          uid: `${index}`,
-          name: `image-${index}`,
-          status: 'done',
-          url: (this.baseUrl ?? '') + img,
-          thumbUrl: (this.baseUrl ?? '') + img
-        }));
-      }
+    if (formData.price !== undefined && formData.price !== null) {
+      formData.price = formData.price.toString();
+    }
+
+    if (formData.area !== undefined && formData.area !== null) {
+      formData.area = formData.area.toString();
+    }
+
+    this.editRoomRentalForm.patchValue(formData);
+
+    if (this.data.roomrentalData.imagesDescription && this.data.roomrentalData.imagesDescription.length > 0) {
+      this.fileList = this.data.roomrentalData.imagesDescription.map((img: string, index: number) => ({
+        uid: `existing-${index}`,
+        name: `image-${index}`,
+        status: 'done',
+        url: (this.baseUrl ?? '') + img,
+        thumbUrl: (this.baseUrl ?? '') + img
+      }));
     }
   }
 
+  handlePreview = async (file: NzUploadFile): Promise<void> => {
+    if (!file.url && !file['preview'] && file.originFileObj) {
+      file['preview'] = await getBase64(file.originFileObj as File);
+    }
+
+    this.previewImage = (file.url || file.thumbUrl || file['preview']) as string;
+    this.previewVisible = true;
+  };
+
+  beforeUpload = (file: NzUploadFile): boolean => {
+    const rawFile = (file as any).originFileObj || file;
+
+    if (!(rawFile instanceof File)) {
+      return false;
+    }
+
+    const previewUrl = URL.createObjectURL(rawFile);
+
+    const uploadFile: NzUploadFile = {
+      uid: file.uid,
+      name: file.name,
+      status: 'done',
+      originFileObj: rawFile,
+      thumbUrl: previewUrl,
+      url: previewUrl
+    };
+
+    this.fileList = [...this.fileList, uploadFile];
+    return false;
+  };
+
   onSubmit(): void {
-    if (this.editRoomRentalForm.valid) {
-      const formData = this.editRoomRentalForm.value;
-      // Handle file list if needed
-      if (this.fileList && this.fileList.length > 0) {
-        formData.imageDescriptions = this.fileList.map(file => ({
-          imageUrl: file.url || file.thumbUrl,
-          description: file.name
-        }));
-      }
+    console.log('onSubmit called');
 
-      console.log('Form data to submit:', formData);
+    if (this.editRoomRentalForm.invalid) {
+      this.editRoomRentalForm.markAllAsTouched();
+      console.log('Form invalid:', this.editRoomRentalForm.value, this.editRoomRentalForm.errors);
+      return;
+    }
 
-      // Call the service to update room rental
-      // this.serviceProxy.updateRoomRental(formData).subscribe(() => {
-      //   alert('Phòng cho thuê đã được cập nhật thành công!');
-      //   // Close modal and refresh parent data
-      // });
+    const form = this.editRoomRentalForm.value;
+    const dto = new CreateOrEditRoomRentalDto();
 
-      // For now, just log the data
-      alert('Dữ liệu sẵn sàng để cập nhật!');
+    dto.id = form.id;
+    dto.roomNumber = form.roomNumber?.toString();
+    dto.roomType = form.roomType ?? undefined;
+    dto.statusRoom = form.statusRoom ?? undefined;
+    dto.price = form.price?.toString();
+    dto.area = form.area?.toString();
+    dto.note = form.note ?? undefined;
+
+    const newFiles = this.fileList
+      .filter(file => !!file.originFileObj)
+      .map(file => ({
+        data: file.originFileObj as File,
+        fileName: (file.originFileObj as File).name
+      }));
+
+    console.log('DTO before save:', dto);
+    console.log('New files:', newFiles);
+
+    if (newFiles.length > 0) {
+      this.serviceProxy.uploadImageDescription(newFiles).pipe(
+        switchMap((paths: string[]) => {
+          dto.imagesDescription = paths;
+          console.log('DTO before createOrEdit with new images:', dto);
+          return this.serviceProxy.createOrEdit(dto);
+        })
+      ).subscribe({
+        next: (res) => {
+          console.log('Update success:', res);
+          this.clearImages();
+          this.saved.emit();
+          this.modalRef.close();
+        },
+        error: (error) => {
+          console.error('Error updating room rental:', error);
+          console.error('Error response:', error?.response);
+        }
+      });
     } else {
-      // Mark all fields as touched to show validation errors
-      Object.keys(this.editRoomRentalForm.controls).forEach(key => {
-        this.editRoomRentalForm.get(key)?.markAsTouched();
+      dto.imagesDescription = this.data?.roomrentalData?.imagesDescription || [];
+      console.log('DTO before createOrEdit without new images:', dto);
+
+      this.serviceProxy.createOrEdit(dto).subscribe({
+        next: (res) => {
+          console.log('Update success:', res);
+          this.clearImages();
+          this.saved.emit();
+          this.modalRef.close();
+        },
+        error: (error) => {
+          console.error('Error updating room rental:', error);
+          console.error('Error response:', error?.response);
+        }
       });
     }
+  }
+
+  closeModal(): void {
+    this.modalRef.close();
+  }
+
+  private clearImages(): void {
+    this.fileList.forEach(file => {
+      if (file.url && file.url.startsWith('blob:')) {
+        URL.revokeObjectURL(file.url);
+      }
+      if (file.thumbUrl && file.thumbUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(file.thumbUrl);
+      }
+    });
+
+    this.fileList = [];
+    this.previewImage = '';
+    this.previewVisible = false;
   }
 }
