@@ -1,0 +1,76 @@
+<nz-layout class="app-layout">
+  <nz-sider class="menu-sidebar"
+    nzCollapsible
+    nzWidth="256px"
+    nzBreakpoint="md"
+    [(nzCollapsed)]="isCollapsed"
+    [nzTrigger]="null"
+  >
+    <div class="sidebar-logo">
+      <!-- user avatar + name (falls back to app logo if not logged in) -->
+      <div class="user-info" *ngIf="userName || avatarUrl; else appLogo">
+        <nz-avatar *ngIf="avatarUrl; else initials" [nzSrc]="baseUrl +avatarUrl" nzSize="large"></nz-avatar>
+        <ng-template #initials>
+          <nz-avatar nzSize="large">{{ (userName || 'U').charAt(0) }}</nz-avatar>
+        </ng-template>
+        <h1 class="user-name">{{ userName }}</h1>
+      </div>
+      <ng-template #appLogo>
+        <img src="https://ng.ant.design/assets/img/logo.svg" alt="logo">
+        <h1></h1>
+      </ng-template>
+    </div>
+    <ul nz-menu nzTheme="dark" nzMode="inline" [nzInlineCollapsed]="isCollapsed" *ngIf="showRoomRentalMenu">
+      <li nz-submenu nzTitle="Quản lý phòng trọ" nzIcon="home" *ngIf="showRoomRentalMenu">
+        <ul>
+          <li nz-menu-item nzMatchRouter>
+            <a routerLink="roomrentals">
+              <i nz-icon nzType="home"></i>
+              <span>Quản lý phòng trọ</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+      <li nz-submenu nzTitle="Quản trị hệ thống" nzIcon="setting">
+        <ul *ngIf="showUserMenu">
+          <li nz-menu-item nzMatchRouter>
+            <a routerLink="users">
+              <i nz-icon nzType="user"></i>
+              <span>Người dùng</span>
+            </a>
+          </li>
+        </ul>
+        <ul *ngIf="showRoleGroupMenu">
+          <li nz-menu-item nzMatchRouter>
+            <a routerLink="rolegroups">
+              <nz-icon nzType="security-scan" nzTheme="outline" />
+              <span>Nhóm quyền</span>
+            </a>
+          </li>
+        </ul>
+        <ul>
+          <li nz-menu-item nzMatchRouter>
+            <a (click)="onLogout()" role="button">
+              <nz-icon nzType="logout" nzTheme="outline" />
+              <span>Đăng xuất</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </nz-sider>
+  <nz-layout>
+    <nz-header>
+      <div class="app-header">
+        <span class="header-trigger" (click)="isCollapsed = !isCollapsed">
+          <nz-icon class="trigger" [nzType]="isCollapsed ? 'menu-unfold' : 'menu-fold'" />
+        </span>
+      </div>
+    </nz-header>
+    <nz-content>
+      <div class="inner-content">
+        <router-outlet></router-outlet>
+      </div>
+    </nz-content>
+  </nz-layout>
+</nz-layout>

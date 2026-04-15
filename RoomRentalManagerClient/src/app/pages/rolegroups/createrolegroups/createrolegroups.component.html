@@ -1,0 +1,44 @@
+<div class="create-role-group">
+    <form nz-form [formGroup]="createRoleGroupForm" (ngSubmit)="onSubmit()">
+
+        <!-- Dynamic form fields based on controlRequestArray -->
+        <div *ngFor="let control of controlRequestArray">
+            <nz-form-item>
+                <nz-form-label [nzFor]="control.key">{{ control.label }}</nz-form-label>
+                <nz-form-control>
+
+                    <!-- Text Input -->
+                    <input *ngIf="control.type === 'text' || control.type === 'number'" nz-input
+                        [formControlName]="control.key" [id]="control.key" [placeholder]="control.placeholder || ''"
+                        [type]="control.type === 'number' ? 'number' : 'text'" />
+
+                    <nz-switch *ngIf="control.type === 'bool'" [formControlName]="control.key"></nz-switch>
+                    <nz-tree-view [nzTreeControl]="treeControl" [nzDataSource]="dataSource" *ngIf="control.type === 'tree'">
+                        <nz-tree-node *nzTreeNodeDef="let node" nzTreeNodePadding>
+                            <nz-tree-node-toggle nzTreeNodeNoopToggle></nz-tree-node-toggle>
+                            <nz-tree-node-checkbox [nzDisabled]="node.disabled"
+                                [nzChecked]="checklistSelection.isSelected(node)"
+                                (nzClick)="leafItemSelectionToggle(node)"></nz-tree-node-checkbox>
+                            <nz-tree-node-option [nzDisabled]="node.disabled" (nzClick)="leafItemSelectionToggle(node)">
+                                {{ node.name }}
+                            </nz-tree-node-option>
+                        </nz-tree-node>
+
+                        <nz-tree-node *nzTreeNodeDef="let node; when: hasChild" nzTreeNodePadding>
+                            <nz-tree-node-toggle>
+                                <nz-icon nzType="caret-down" nzTreeNodeToggleRotateIcon />
+                            </nz-tree-node-toggle>
+                            <nz-tree-node-checkbox [nzDisabled]="node.disabled"
+                                [nzChecked]="descendantsAllSelected(node)"
+                                [nzIndeterminate]="descendantsPartiallySelected(node)"
+                                (nzClick)="itemSelectionToggle(node)"></nz-tree-node-checkbox>
+                            <nz-tree-node-option [nzDisabled]="node.disabled" (nzClick)="itemSelectionToggle(node)">
+                                {{ node.name }}
+                            </nz-tree-node-option>
+                        </nz-tree-node>
+                    </nz-tree-view>
+                </nz-form-control>
+            </nz-form-item>
+        </div>
+    </form>
+</div>

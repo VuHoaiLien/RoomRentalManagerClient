@@ -1,0 +1,65 @@
+<form nz-form>
+  <ng-container *ngFor="let row of filterPerRows">
+    <div nz-row>
+      <nz-form-item *ngFor="let field of row" nz-col nzSpan="6">
+        <nz-form-label nz-col nzSpan="10">{{ field.label }}</nz-form-label>
+        <nz-form-control nz-col nzSpan="20">
+          <ng-container [ngSwitch]="field.type">
+            <input *ngSwitchCase="'text'" nz-input [(ngModel)]="roleGroupsFilterDto[field.key]" [name]="field.key"
+              [placeholder]="field.placeholder ?? null" />
+            <nz-select *ngSwitchCase="'select'" [(ngModel)]="roleGroupsFilterDto[field.key]" [name]="field.key"
+              [nzPlaceHolder]="field.placeholder ?? null" nzShowSearch nzAllowClear>
+              <nz-option *ngFor="let opt of field.options ? field.options() : []" [nzValue]="opt.value ?? null"
+                [nzLabel]="opt.text ?? null"></nz-option>
+            </nz-select>
+            <nz-date-picker style="width: 100%;" *ngSwitchCase="'datetime'" [(ngModel)]="roleGroupsFilterDto[field.key]"
+              id="dateOfBirth" [name]="field.key"></nz-date-picker>
+          </ng-container>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+  </ng-container>
+  <button nz-button nzType="primary" (click)="getAllRoleGroups()" style="align-self: flex-end;"><nz-icon
+      nzType="search" nzTheme="outline" />Tìm kiếm</button>
+  <button nz-button nzType="primary" class="btn-gap" *ngIf="hasPermission('RoleGroups.Thêm')" (click)="openCreateRoleGroupModal()"><nz-icon nzType="user-add"
+      nzTheme="outline" />Tạo mới nhóm quyền</button>
+</form>
+<br>
+<br>
+<nz-table #rowSelectionTable nzShowPagination nzShowSizeChanger [nzData]="roleGroups" [nzTotal]="total"
+  [nzPageSize]="pageSize" [nzPageIndex]="pageIndex" [nzLoading]="loading" (nzPageIndexChange)="onPageChange($event)"
+  (nzPageSizeChange)="onPageSizeChange($event)" [nzScroll]="{ y: '300px' }">
+  <thead>
+    <tr>
+      <th [nzChecked]="checked" [nzIndeterminate]="indeterminate" nzLabel="Select all"
+        (nzCheckedChange)="onAllChecked($event)"></th>
+      <th>Tên nhóm quyền</th>
+      <th>Trạng thái</th>
+      <th>Ngày tạo</th>
+      <th>Ngày cập nhật</th>
+      <th>Người tạo</th>
+      <th>Người cập nhật</th>
+      <th>Thao tác</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let data of rowSelectionTable.data; trackBy: trackData">
+      <td [nzChecked]="data.id !== undefined && setOfCheckedId.has(data.id)"
+        [nzLabel]="''"
+        (nzCheckedChange)="onItemChecked(data.id !== undefined ? data.id : 0, $event)"></td>
+      <td>{{ data.name }}</td>
+      <td>{{ data.active !== undefined ? data.active : '' }}</td>
+      <td>{{ data.createdAt | date: 'dd/MM/yyyy' }}</td>
+      <td>{{ data.updatedAt | date: 'dd/MM/yyyy' }}</td>
+      <td>{{ data.creatorUser }}</td>
+      <td>{{ data.lastUpdateUser }}</td>
+      <td>
+        <nz-icon nzType="edit" nzTheme="outline" *ngIf="hasPermission('RoleGroups.Sửa')" (click)="openEditRoleGroupModal(data)"/>
+        <button nz-button nzType="link"
+          style="padding:0; display:inline-flex">
+          <nz-icon nzType="delete" nzTheme="outline" style="color:#ff4d4f; cursor:pointer" *ngIf="hasPermission('RoleGroups.Xóa')" (click)="openDeleteRoleGroupModal(data.id !== undefined ? data.id : 0)"></nz-icon>
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</nz-table>

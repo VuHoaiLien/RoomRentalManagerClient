@@ -1,0 +1,42 @@
+<div class="create-user">
+  <form nz-form [formGroup]="createRoomRentalForm" (ngSubmit)="onSubmit()">
+
+    <!-- Dynamic form fields based on controlRequestArray -->
+    <div *ngFor="let control of controlRequestArray">
+      <nz-form-item>
+        <nz-form-label [nzFor]="control.key">{{ control.label }}</nz-form-label>
+        <nz-form-control>
+
+          <!-- Text Input -->
+          <input *ngIf="control.type === 'text' || control.type === 'number'" nz-input [formControlName]="control.key"
+            [id]="control.key" [placeholder]="control.placeholder || ''"
+            [type]="control.type === 'number' ? 'number' : 'text'" />
+
+          <!-- Select Dropdown -->
+          <nz-select *ngIf="control.type === 'select'" [formControlName]="control.key"
+            [nzPlaceHolder]="control.placeholder || 'Chọn...'" nzAllowClear>
+            <nz-option *ngFor="let option of control.options ? control.options() : []" [nzValue]="option.value"
+              [nzLabel]="option.text || ''">
+            </nz-option>
+          </nz-select>
+
+          <nz-upload nzListType="picture-card" [nzBeforeUpload]="beforeUpload" [nzFileList]="fileList"
+            [nzShowButton]="fileList.length < 8" [nzPreview]="handlePreview" *ngIf="control.type === 'file'">
+            <div>
+              <nz-icon nzType="plus" />
+              <div style="margin-top: 8px">Upload</div>
+            </div>
+          </nz-upload>
+          <nz-modal [nzVisible]="previewVisible" [nzContent]="modalContent" [nzFooter]="null"
+            (nzOnCancel)="previewVisible = false" *ngIf="control.type === 'file'">
+            <ng-template #modalContent>
+              <img [src]="previewImage" style="width: 100%" />
+            </ng-template>
+          </nz-modal>
+
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+
+  </form>
+</div>

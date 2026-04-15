@@ -1,0 +1,194 @@
+<div class="page-wrapper">
+
+  <div class="search-card">
+    <div class="card-header">
+      <h2 class="card-title">Tìm kiếm phòng trọ</h2>
+      <p class="card-subtitle">Lọc và tìm nhanh các phòng cho thuê</p>
+    </div>
+
+    <form nz-form>
+      <ng-container *ngFor="let row of filterPerRows">
+        <div nz-row [nzGutter]="16">
+          <div nz-col
+               [nzXs]="24"
+               [nzSm]="12"
+               [nzMd]="12"
+               [nzLg]="12"
+               [nzXl]="6"
+               *ngFor="let field of row">
+            <div class="filter-field">
+              <label class="filter-label">{{ field.label }}</label>
+
+              <ng-container [ngSwitch]="field.type">
+
+                <!-- TEXT -->
+                <input *ngSwitchCase="'text'"
+                       nz-input
+                       [(ngModel)]="$any(roomRentalFilterDto)[field.key]"
+                       [ngModelOptions]="{ standalone: true }"
+                       [name]="field.key"
+                       [placeholder]="field.placeholder ?? ''" />
+
+                <!-- SELECT -->
+                <nz-select *ngSwitchCase="'select'"
+                           [(ngModel)]="$any(roomRentalFilterDto)[field.key]"
+                           [ngModelOptions]="{ standalone: true }"
+                           [name]="field.key"
+                           nzShowSearch
+                           nzAllowClear
+                           [nzPlaceHolder]="field.placeholder ?? ''">
+                  <nz-option *ngFor="let opt of field.options ? field.options() : []"
+                             [nzValue]="opt.value"
+                             [nzLabel]="opt.text"></nz-option>
+                </nz-select>
+
+                <!-- DATE -->
+                <nz-date-picker *ngSwitchCase="'datetime'"
+                                style="width: 100%"
+                                [(ngModel)]="$any(roomRentalFilterDto)[field.key]"
+                                [ngModelOptions]="{ standalone: true }"
+                                [name]="field.key"></nz-date-picker>
+
+                <!-- SLIDER -->
+                <nz-slider *ngSwitchCase="'slider'"
+                           nzRange
+                           [ngModel]="getSliderValue(field.key)"
+                           [ngModelOptions]="{ standalone: true }"
+                           (ngModelChange)="setSliderValue(field.key, $event)"></nz-slider>
+
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="filter-actions">
+        <button nz-button
+                nzType="primary"
+                type="button"
+                (click)="getAllRoomRentals()">
+          <nz-icon nzType="search"></nz-icon>
+          Tìm kiếm
+        </button>
+
+        <button nz-button
+                class="create-btn"
+                type="button"
+                *ngIf="hasPermission('RoomRental.Thêm')"
+                (click)="openCreateRoomRentalModal()">
+          <nz-icon nzType="plus"></nz-icon>
+          Tạo mới phòng
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="list-card">
+    <div class="card-header">
+      <h2 class="card-title">Danh sách phòng</h2>
+    </div>
+
+    <div nz-row [nzGutter]="20">
+      <div nz-col
+           [nzXs]="24"
+           [nzSm]="12"
+           [nzMd]="12"
+           [nzLg]="8"
+           [nzXl]="6"
+           *ngFor="let data of roomRentals">
+        <div class="room-card">
+
+          <!-- IMAGE -->
+          <div class="room-image-box" *ngIf="(data.imagesDescription?.length ?? 0) > 0; else noImg">
+            <img class="room-image"
+                 [src]="(baseUrl ?? '') + (data.imagesDescription?.[0] ?? '')"
+                 alt="Ảnh phòng" />
+
+            <div class="room-image-count" *ngIf="(data.imagesDescription?.length ?? 0) > 1">
+              +{{ (data.imagesDescription?.length ?? 0) - 1 }}
+            </div>
+          </div>
+
+          <ng-template #noImg>
+            <div class="room-image-box no-image">Không có ảnh</div>
+          </ng-template>
+
+          <!-- CONTENT -->
+          <div class="room-content">
+            <div class="room-top">
+              <span class="room-number">Phòng {{ data.roomNumber }}</span>
+              <span class="room-price">{{ data.price }}</span>
+            </div>
+
+            <div class="room-status">
+              {{ data.statusRoom !== undefined ? getRoomStatusText(data.statusRoom) : '' }}
+            </div>
+
+            <div class="room-info-item">
+              <span>Loại phòng:</span>
+              <b>{{ data.roomType !== undefined ? getRoomTypeText(data.roomType) : '' }}</b>
+            </div>
+
+            <div class="room-info-item">
+              <span>Diện tích:</span>
+              <b>{{ data.area }} m²</b>
+            </div>
+
+            <div class="room-info-item">
+              <span>Ghi chú:</span>
+              <b>{{ data.note || '---' }}</b>
+            </div>
+
+            <div class="room-info-item">
+              <span>Người tạo:</span>
+              <b>{{ data.creatorUser || '---' }}</b>
+            </div>
+
+            <div class="room-info-item">
+              <span>Ngày tạo:</span>
+              <b>{{ data.createdDate | date: 'dd/MM/yyyy' }}</b>
+            </div>
+
+            <div class="room-info-item">
+              <span>Người cập nhật:</span>
+              <b>{{ data.lastUpdateUser || '---' }}</b>
+            </div>
+
+            <div class="room-info-item">
+              <span>Ngày cập nhật:</span>
+              <b>{{ data.updatedDate | date: 'dd/MM/yyyy' }}</b>
+            </div>
+
+            <div class="room-actions">
+              <button nz-button
+                      type="button"
+                      *ngIf="hasPermission('RoomRental.Sửa')"
+                      (click)="openEditRoomRentalModal(data)">
+                <nz-icon nzType="edit"></nz-icon>
+              </button>
+
+              <button nz-button
+                      nzDanger
+                      type="button"
+                      *ngIf="hasPermission('RoomRental.Xóa')"
+                      (click)="openDeleteRoomRentalModal(data.id ?? 0)">
+                <nz-icon nzType="delete"></nz-icon>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="pagination-wrapper">
+      <nz-pagination [nzTotal]="total"
+                     [nzPageIndex]="pageIndex"
+                     [nzPageSize]="pageSize"
+                     [nzShowSizeChanger]="true"
+                     (nzPageIndexChange)="onPageChange($any($event))"
+                     (nzPageSizeChange)="onPageSizeChange($any($event))"></nz-pagination>
+    </div>
+  </div>
+
+</div>

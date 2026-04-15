@@ -1,0 +1,81 @@
+<form nz-form>
+  <ng-container *ngFor="let row of filterPerRows">
+    <div nz-row>
+      <nz-form-item *ngFor="let field of row" nz-col nzSpan="6">
+        <nz-form-label nz-col nzSpan="10">{{ field.label }}</nz-form-label>
+        <nz-form-control nz-col nzSpan="20">
+          <ng-container [ngSwitch]="field.type">
+            <input *ngSwitchCase="'text'" nz-input [(ngModel)]="userFilterDto[field.key]" [name]="field.key"
+              [placeholder]="field.placeholder ?? null" />
+            <nz-select *ngSwitchCase="'select'" [(ngModel)]="userFilterDto[field.key]" [name]="field.key"
+              [nzPlaceHolder]="field.placeholder ?? null" nzShowSearch nzAllowClear>
+              <nz-option *ngFor="let opt of field.options ? field.options() : []" [nzValue]="opt.value ?? null"
+                [nzLabel]="opt.text ?? null"></nz-option>
+            </nz-select>
+            <nz-date-picker style="width: 100%;" *ngSwitchCase="'datetime'" [(ngModel)]="userFilterDto[field.key]" 
+              id ="dateOfBirth" [name]="field.key"></nz-date-picker>
+          </ng-container>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+  </ng-container>
+  <button nz-button nzType="primary" (click)="getUsers()" style="align-self: flex-end;"><nz-icon nzType="search" nzTheme="outline" />Tìm kiếm</button>
+</form>
+<br>
+<div *ngIf="hasPermission('User.Thêm')">
+  <button nz-button nzType="primary" (click)="openCreateUserModal()"><nz-icon nzType="user-add" nzTheme="outline" />Tạo mới người dùng</button>
+</div>
+<br>
+<nz-table #rowSelectionTable nzShowPagination nzShowSizeChanger [nzData]="lstUser" [nzTotal]="total"
+  [nzPageSize]="pageSize" [nzPageIndex]="pageIndex" [nzLoading]="loading" (nzPageIndexChange)="onPageChange($event)"
+  (nzPageSizeChange)="onPageSizeChange($event)" [nzScroll]="{ y: '300px' }">
+  <thead>
+    <tr>
+      <th [nzChecked]="checked" [nzIndeterminate]="indeterminate" nzLabel="Select all"
+        (nzCheckedChange)="onAllChecked($event)"></th>
+      <th>Ảnh đại diện</th>
+      <th>Tên</th>
+      <th>Email</th>
+      <th>Tỉnh/TP</th>
+      <th>Quận/Huyện</th>
+      <th>Xã/Phường</th>
+      <th>Địa chỉ</th>
+      <th>Số CCCD</th>
+      <th>Nghề nghiệp</th>
+      <th>Ngày tháng năm sinh</th>
+      <th>Giới tính</th>
+      <th>Phương tiện</th>
+      <th>Nhóm quyền</th>
+      <th>Thao tác</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let data of rowSelectionTable.data; trackBy: trackData">
+      <td [nzChecked]="data.id !== undefined && setOfCheckedId.has(data.id)"
+        [nzLabel]="data.name !== undefined ? data.name : null"
+        (nzCheckedChange)="onItemChecked(data.id !== undefined ? data.id : 0, $event)"></td>
+      <td>
+        <ng-container>
+          <img nz-image [nzSrc]="(baseUrl ?? '') + (data?.avatar ?? '')" nzAlt="avatar"
+            style="width: 50px; height: 50px; margin-right: 5px;" />
+        </ng-container>
+      </td>
+      <td>{{ data.name }}</td>
+      <td>{{ data.email }}</td>
+      <td>{{ getProvinceName(data.provinceCode) }}</td>
+      <td>{{ getDistrictName(data.districtCode) }}</td>
+      <td>{{ getWardName(data.wardCode) }}</td>
+      <td>{{ data.address }}</td>
+      <td>{{ data.idCard }}</td>
+      <td>{{ data.job }}</td>
+      <td>{{ data.dateOfBirth | date: 'dd/MM/yyyy' }}</td>
+      <td>{{ data.gender }}</td>
+      <td>{{ data.bikeId }}</td>
+      <td>{{ getRoleName(data.roleGroupId) }}</td>
+      <td>
+        <nz-icon nzType="edit" nzTheme="outline" *ngIf="hasPermission('User.Sửa')" (click)="openEditUserModal(data)" />
+        <nz-icon nzType="delete" nzTheme="outline" *ngIf="hasPermission('User.Xóa')" (click)="openDeleteUserModal(data)" style="color:#ff4d4f; cursor:pointer"/>
+      </td>
+    </tr>
+  </tbody>
+</nz-table>

@@ -1,0 +1,66 @@
+<div class="login-form-wrapper">
+  <form class="login-form" (ngSubmit)="onLogin()" #loginForm="ngForm">
+    <h2 class="login-title">Đăng nhập hệ thống</h2>
+    <div class="form-group">
+      <label for="username">Tên đăng nhập</label>
+      <input
+        id="username"
+        name="username"
+        type="text"
+        class="form-control"
+        required
+        [(ngModel)]="username"
+        placeholder="Nhập tên đăng nhập"
+      />
+    </div>
+    <div class="form-group">
+      <label for="password">Mật khẩu</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        class="form-control"
+        required
+        [(ngModel)]="password"
+        placeholder="Nhập mật khẩu"
+      />
+    </div>
+    <div class="form-options">
+      <label class="remember-me">
+        <input
+          type="checkbox"
+          name="remember"
+          [(ngModel)]="rememberMe"
+        />
+        Ghi nhớ đăng nhập
+      </label>
+      <span class="divider"></span>
+      <a class="forgot-password" href="#" (click)="onForgotPassword($event)">Quên mật khẩu?</a>
+    </div>
+    <button type="submit" class="login-btn" [disabled]="loginForm.invalid">
+      Đăng nhập
+    </button>
+
+    <!-- Google Sign-In Section -->
+    <div class="divider-container">
+      <span class="divider-line"></span>
+      <span class="divider-text">hoặc</span>
+      <span class="divider-line"></span>
+    </div>
+
+    <div class="google-signin-container">
+      <!-- Google Sign-In Button will be rendered here -->
+      <div id="google-signin-button"></div>
+      
+      <!-- Loading indicator -->
+      <div *ngIf="isGoogleLoading" class="google-loading">
+        <span>Đang xử lý...</span>
+      </div>
+      
+      <!-- Error message -->
+      <div *ngIf="googleError" class="google-error">
+        {{ googleError }}
+      </div>
+    </div>
+  </form>
+</div>
