@@ -1,7 +1,193 @@
-.send-request {
-    margin-bottom: 16px;
+:host {
+  display: block;
+  background: #f5f7fa;
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
-.send-request span {
-    margin-left: 8px;
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.search-card,
+.list-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin-bottom: 8px;
+}
+
+.card-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-bottom: 24px;
+}
+
+.search-form {
+  width: 100%;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 20px 20px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.custom-control {
+  width: 100%;
+}
+
+.custom-control,
+::ng-deep .custom-control .ant-select-selector,
+::ng-deep .custom-control.ant-picker {
+  height: 48px !important;
+  border-radius: 14px !important;
+}
+
+::ng-deep .custom-control input,
+::ng-deep .custom-control .ant-select-selection-placeholder,
+::ng-deep .custom-control .ant-picker-input input {
+  font-size: 15px;
+}
+
+::ng-deep .ant-input,
+::ng-deep .ant-select-selector,
+::ng-deep .ant-picker {
+  border: 1px solid #d9d9d9 !important;
+  box-shadow: none !important;
+}
+
+  ::ng-deep .ant-input:hover,
+  ::ng-deep .ant-select-selector:hover,
+  ::ng-deep .ant-picker:hover,
+  ::ng-deep .ant-input:focus,
+  ::ng-deep .ant-select-focused .ant-select-selector,
+  ::ng-deep .ant-picker-focused {
+    border-color: #4096ff !important;
+  }
+
+.action-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.search-btn,
+.create-btn {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.search-btn {
+  background: #1677ff;
+  border-color: #1677ff;
+}
+
+.create-btn {
+  border: 1px solid #1677ff;
+  color: #1677ff;
+  background: #ffffff;
+}
+
+.avatar-image {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+}
+
+.action-icons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 18px;
+}
+
+  .action-icons .anticon {
+    cursor: pointer;
+  }
+
+  .action-icons .anticon-edit {
+    color: #1677ff;
+  }
+
+  .action-icons .anticon-delete {
+    color: #ff4d4f;
+  }
+
+.custom-table {
+  margin-top: 20px;
+}
+
+::ng-deep .custom-table .ant-table {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+::ng-deep .custom-table .ant-table-thead > tr > th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #1f1f1f;
+  white-space: nowrap;
+}
+
+::ng-deep .custom-table .ant-table-tbody > tr > td {
+  vertical-align: middle;
+}
+
+@media (max-width: 1200px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  :host {
+    padding: 16px;
+  }
+
+  .search-card,
+  .list-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-group {
+    flex-direction: column;
+  }
+
+  .search-btn,
+  .create-btn {
+    width: 100%;
+  }
 }
