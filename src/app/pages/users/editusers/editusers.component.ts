@@ -11,8 +11,8 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommonModule } from '@angular/common';
 import { CategoryCacheService } from '../../../shared/category-cache.service';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzUploadModule, NzUploadFile } from 'ng-zorro-antd/upload';
-import { switchMap } from 'rxjs';
+import { NzUploadModule, NzUploadFile, NzUploadChangeParam } from 'ng-zorro-antd/upload';
+import { of, switchMap } from 'rxjs';
 
 
 @Component({
@@ -90,6 +90,13 @@ export class EditUsersComponent implements OnInit {
     this.fileList = [...this.fileList, uploadFile];
     return false;
   };
+  /** Syncs controlled [nzFileList] when the user removes a file (or replaces); without this, the upload slot stays hidden. */
+  handleUploadChange(info: NzUploadChangeParam): void {
+    this.fileList = info.fileList;
+    if (info.fileList.length === 0) {
+      this.editUserForm.patchValue({ avatar: '' }, { emitEvent: false });
+    }
+  }
   initializeFormControls(): void {
     // Use arrays for options to avoid function calls inside template (improves performance)
     this.controlRequestArray = [
@@ -128,17 +135,23 @@ export class EditUsersComponent implements OnInit {
       const userDto: CreateOrEditUserDto = this.editUserForm.value;
 
       const fileParameters = this.fileList
-        .filter(file => file)
+        .filter(file => file.originFileObj)
         .map(file => ({
           data: file.originFileObj as File,
-          fileName: file.originFileObj ? (file.originFileObj as File).name : file.name
+          fileName: (file.originFileObj as File).name
         }));
 
-      // upload avatar first (if any), then create user
-      this.serviceProxy.uploadAvatar(fileParameters).pipe(
+      const upload$ =
+        fileParameters.length > 0
+          ? this.serviceProxy.uploadAvatar(fileParameters)
+          : of([] as string[]);
+
+      upload$.pipe(
         switchMap(imagePaths => {
-          userDto.avatar = imagePaths[0];
-          userDto.id = 0; // Set ID to 0 for new creation
+          if (imagePaths.length > 0) {
+            userDto.avatar = imagePaths[0];
+          }
+          userDto.id = this.data.userData?.id;
           return this.serviceProxy.createOrEditUser(userDto);
         })
       ).subscribe(() => {
