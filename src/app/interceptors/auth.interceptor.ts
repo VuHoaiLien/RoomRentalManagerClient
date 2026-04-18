@@ -10,8 +10,9 @@ import { Observable } from 'rxjs';
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = localStorage.getItem('access_token');
-    console.log('Intercepted request with token:', token);
+    // Match AuthService.getAccessToken(): remember-me uses localStorage, else sessionStorage
+    const token =
+      localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
     if (token) {
       request = request.clone({
         setHeaders: {

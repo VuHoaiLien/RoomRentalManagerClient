@@ -22,7 +22,8 @@
 
           <!-- file upload -->
           <nz-upload *ngIf="control.type === 'file'" nzListType="picture-card" [nzBeforeUpload]="beforeUpload"
-            [nzFileList]="fileList" [nzShowButton]="fileList.length < 1" [nzPreview]="handlePreview">
+            (nzChange)="handleUploadChange($event)" [nzFileList]="fileList" [nzShowButton]="fileList.length < 1"
+            [nzPreview]="handlePreview">
             <div *ngIf="fileList.length < 1">
               <nz-icon nzType="plus"></nz-icon>
               <div style="margin-top: 8px">Upload</div>
